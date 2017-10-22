@@ -8,6 +8,8 @@
 
     var clipIndex = 0;
 
+    var bibliographyAdded = false;
+
     // Die Initialisierungsfunktion muss bei jedem Laden einer neuen Seite ausgeführt werden.
     Office.initialize = function (reason) {
         $(document).ready(function () {
@@ -37,6 +39,8 @@
 
             $('#source-footnote-button').on('click', insertFoot);
             $('#cite-button').on('click', insertCitation);
+            
+            $('#citation-bibliography-button').on('click', insertBibliography);
 
 
 
@@ -55,14 +59,67 @@
         });
     };
 
+    function insertBibliography() {
+      
+        Word.run(function (context) {
+            if (bibliographyAdded) {
+                var bibControls = context.document.contentControls.getByTag("bibliography");
+                context.load(bibControls);
+
+
+                return context.sync()
+                    .then(function () {
+                       
+                        var citation = bibControls.items[0].insertParagraph(clips[clipIndex]['citations'], 'end');
+                        citation.spaceAfter = 20;
+                        //citation.insertText('\n', 'end');
+                        citation.styleBuiltIn = Word.Style.bibliography;
+                        return context.sync();
+
+                    });
+
+               
+
+              
+            }
+            else {
+                var range = context.document.getSelection();
+                if (!bibliographyAdded) {
+
+                    var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
+                    heading.styleBuiltIn = Word.Style.heading2;
+                    bibliographyAdded = true;
+                }
+                var bibliography = range.insertContentControl('after');
+              
+
+                bibliography.tag = 'bibliography';
+                bibliography.styleBuiltIn = Word.Style.bibliography;
+                var citation = bibliography.insertParagraph(clips[clipIndex]['citations'], 'end');
+                citation.spaceAfter = 20;
+                //citation.insertText('\n', 'end');
+                citation.styleBuiltIn = Word.Style.bibliography;
+
+                return context.sync();
+            }
+           
+
+
+            
+        })
+            .catch(errorHandler);
+    }
+
     function insertCitation() {
         Word.run(function (context) {
-            var body = context.document.body;
 
+            var range = context.document.getSelection();
 
-            body.insertText(
+            //Word.Style.bibliography
+
+            range.insertText(
                 '"' + clips[clipIndex]['content'] + '"',
-                Word.InsertLocation.end);
+                Word.InsertLocation.replace);
 
             return context.sync();
         })
