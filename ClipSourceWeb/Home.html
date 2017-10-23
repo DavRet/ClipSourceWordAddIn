@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <title>Word Add-In with Commands Sample</title>
+    <title>Clipboard Source Manager</title>
 
     <script src="Scripts/jquery-1.9.1.js" type="text/javascript"></script>
     <script src="Scripts/FabricUI/MessageBanner.js" type="text/javascript"></script>
@@ -28,9 +28,9 @@
     <div id="content-main">
         <div class="padding">
 
-            <p class="ms-font-xxl ms-fontColor-neutralSecondary ms-fontWeight-semilight">Clipboard</p>
+            <p class="ms-font-xxl ms-fontColor-neutralSecondary ms-fontWeight-semilight">Clipboard Source Management</p>
 
-            <div class="ms-font-xl ms-fontColor-neutralTertiary">Zeigt die Quellen des Objektes in der Zwischenablage an</div>
+            <div class="ms-font-l ms-fontColor-neutralTertiary">Durch "Zurück" und "Vorwärts" können Sie ihre vorherigen Clipboard Daten wiederherstellen</div>
             <p class="ms-font-m-plus ms-fontColor-neutralTertiary" id="template-description"></p>
 
 
@@ -58,18 +58,12 @@
                 <label class="ms-Label">Formatierte Quelle</label>
                 <textarea id="txtCitation" class="ms-TextField-field"></textarea>
             </div>
-            <div class="ms-Button" id="citation-bibliography-button">Literaturverzeichnis einfügen</div>
+            <div class="ms-Button" id="citation-bibliography-button">Literaturverzeichnis erstellen</div>
 
 
         </div>
     </div>
-    <div class="footer">
-        <div class="ms-Grid ms-bgColor-themeSecondary">
-            <div class="ms-Grid-row">
-                <div class="ms-Grid-col ms-u-sm12 ms-u-md12 ms-u-lg12"> <div class="ms-font-xl ms-fontColor-white">Contoso</div></div>
-            </div>
-        </div>
-    </div>
+   
 
     <!-- Eine FabricUI-Komponente, die für die Anzeige von Benachrichtigungen verwendet wird. -->
     <div class="ms-MessageBanner" id="notification-popup">

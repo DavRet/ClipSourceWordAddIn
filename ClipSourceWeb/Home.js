@@ -10,6 +10,11 @@
 
     var bibliographyAdded = false;
 
+    var currentCitationNumber = 1;
+
+    var currentFootNoteNumber = 1;
+
+
     // Die Initialisierungsfunktion muss bei jedem Laden einer neuen Seite ausgeführt werden.
     Office.initialize = function (reason) {
         $(document).ready(function () {
@@ -46,6 +51,7 @@
 
 
 
+
             Word.run(function (context) {
                 // Erstellt ein Proxyobjekt für den Dokumenttext.
                 var body = context.document.body;
@@ -59,31 +65,53 @@
         });
     };
 
+    function getSuperScript() {
+        switch (currentFootNoteNumber) {
+            case 1: return '\u00B9';
+            case 2: return '\u00b2';
+            case 3: return '\u00b3';
+            case 4: return '\u2074';
+            case 5: return '\u2075';
+            case 6: return '\u2076';
+            case 7: return '\u2077';
+            case 8: return '\u2078';
+            case 9: return '\u2079';
+            case 0: return '\u2080';
+        }
+    };
+
+    function getCitationNumber() {
+        return ' [' + currentCitationNumber + ']';
+    }
+
     function insertBibliography() {
       
         Word.run(function (context) {
             if (bibliographyAdded) {
+                var range = context.document.getSelection();
                 var bibControls = context.document.contentControls.getByTag("bibliography");
                 context.load(bibControls);
 
+                range.insertText(getCitationNumber(), 'after');
 
                 return context.sync()
                     .then(function () {
-                       
-                        var citation = bibControls.items[0].insertParagraph(clips[clipIndex]['citations'], 'end');
+
+                        
+                        var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
                         citation.spaceAfter = 20;
                         //citation.insertText('\n', 'end');
                         citation.styleBuiltIn = Word.Style.bibliography;
+                        currentCitationNumber++;
+
+                   
                         return context.sync();
 
                     });
-
-               
-
-              
             }
             else {
                 var range = context.document.getSelection();
+                range.insertText(getCitationNumber());
                 if (!bibliographyAdded) {
 
                     var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
@@ -95,16 +123,18 @@
 
                 bibliography.tag = 'bibliography';
                 bibliography.styleBuiltIn = Word.Style.bibliography;
-                var citation = bibliography.insertParagraph(clips[clipIndex]['citations'], 'end');
+                var citation = bibliography.insertParagraph('['+currentCitationNumber+']' + ' ' + clips[clipIndex]['citations'], 'end');
                 citation.spaceAfter = 20;
                 //citation.insertText('\n', 'end');
                 citation.styleBuiltIn = Word.Style.bibliography;
+                currentCitationNumber++;
+                $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
+
+
 
                 return context.sync();
             }
-           
-
-
+          
             
         })
             .catch(errorHandler);
@@ -115,23 +145,40 @@
 
             var range = context.document.getSelection();
 
-            //Word.Style.bibliography
+            /*if (clips[clipIndex]['citations'] != 'no citations in clipboard') {
+                var citation = range.insertText('"' + clips[clipIndex]['content']  + '"',
+                    Word.InsertLocation.replace);
+                citation.styleBuiltIn = Word.Style.quote;
+                insertBibliography();
+            }
+            else {
+                var citation = range.insertText(
+                    '"' + clips[clipIndex]['content'] + '"' + getSuperScript(),
+                    Word.InsertLocation.replace);
+                citation.styleBuiltIn = Word.Style.quote;
+                insertFoot();
 
-            range.insertText(
+            }*/
+
+            var citation = range.insertText(
                 '"' + clips[clipIndex]['content'] + '"',
                 Word.InsertLocation.replace);
+            citation.styleBuiltIn = Word.Style.quote;             
 
             return context.sync();
         })
             .catch(errorHandler);
     }
 
-    function insertFoot(source) {
+    function insertFoot() {
         Word.run(function (context) {
 
             // Create a proxy sectionsCollection object.
             var mySections = context.document.sections;
 
+            var range = context.document.getSelection();
+
+            range.insertText(getSuperScript(), 'end');
 
             // Queue a commmand to load the sections.
             context.load(mySections, 'body/style');
@@ -145,13 +192,20 @@
 
                 var myFooter = mySections.items[0].getFooter("primary");
 
-                myFooter.clear();
+                //myFooter.clear();
 
                 // Queue a command to insert text at the end of the footer.
-                myFooter.insertText('Quelle: ' + clips[clipIndex]['source'], Word.InsertLocation.end);
+                myFooter.insertParagraph(getSuperScript(1) + ' ' + 'Quelle: ' + clips[clipIndex]['source'], Word.InsertLocation.end);
+                myFooter.spaceAfter = 10;
+                //myFooter.insertBreak('after');
 
                 // Queue a command to wrap the header in a content control.
                 myFooter.insertContentControl();
+
+                myFooter.styleBuiltIn = Word.Style.footnoteText;
+
+                currentFootNoteNumber++;
+
 
                 // Synchronize the document state by executing the queued commands, 
                 // and return a promise to indicate task completion.
@@ -284,7 +338,7 @@
                             clipIndex = clips.length - 1;
                             console.log(clipIndex);
                         }
-                        else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == citation) {
+                        else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content) {
                             console.log(clips.slice(-1)[0]['content']);
                         }
                         else {

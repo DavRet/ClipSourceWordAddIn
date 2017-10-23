@@ -126,14 +126,14 @@
       </bt:Urls>
       <!-- Maximal zulässige Zeichen für "ShortStrings" = 125. -->
       <bt:ShortStrings>
-        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Taskpane" />
-        <bt:String id="Contoso.Group1Label" DefaultValue="Commands Group" />
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with your sample add-in!" />
+        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Clipboard Manager" />
+        <bt:String id="Contoso.Group1Label" DefaultValue="Clipboard Manager" />
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Clipboard Source Management" />
       </bt:ShortStrings>
       <!-- Maximal zulässige Zeichen für "LongStrings" = 250. -->
       <bt:LongStrings>
-        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane" />
-        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Your sample add-in loaded succesfully. Go to the HOME tab and click the 'Show Taskpane' button to get started." />
+        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Show Add-In to manage your clipboard sources" />
+        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Clipboard Manager loaded succesfully. Click the 'Show Clipboard Manager' button to get started." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
