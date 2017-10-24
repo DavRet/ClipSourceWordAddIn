@@ -84,60 +84,85 @@
         return ' [' + currentCitationNumber + ']';
     }
 
-    function insertBibliography() {
-      
+    function insertCreditline() {
         Word.run(function (context) {
-            if (bibliographyAdded) {
-                var range = context.document.getSelection();
-                var bibControls = context.document.contentControls.getByTag("bibliography");
-                context.load(bibControls);
 
-                range.insertText(getCitationNumber(), 'after');
+            var range = context.document.getSelection();
 
-                return context.sync()
-                    .then(function () {
+            var creditline = range.insertText(
+                clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + clips[clipIndex]['source'],
+                Word.InsertLocation.replace);
 
-                        
-                        var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
-                        citation.spaceAfter = 20;
-                        //citation.insertText('\n', 'end');
-                        citation.styleBuiltIn = Word.Style.bibliography;
-                        currentCitationNumber++;
+            creditline.styleBuiltIn = Word.Style.caption;
 
-                   
-                        return context.sync();
-
-                    });
-            }
-            else {
-                var range = context.document.getSelection();
-                range.insertText(getCitationNumber());
-                if (!bibliographyAdded) {
-
-                    var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
-                    heading.styleBuiltIn = Word.Style.heading2;
-                    bibliographyAdded = true;
-                }
-                var bibliography = range.insertContentControl('after');
-              
-
-                bibliography.tag = 'bibliography';
-                bibliography.styleBuiltIn = Word.Style.bibliography;
-                var citation = bibliography.insertParagraph('['+currentCitationNumber+']' + ' ' + clips[clipIndex]['citations'], 'end');
-                citation.spaceAfter = 20;
-                //citation.insertText('\n', 'end');
-                citation.styleBuiltIn = Word.Style.bibliography;
-                currentCitationNumber++;
-                $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
-
-
-
-                return context.sync();
-            }
-          
-            
+            return context.sync();
         })
             .catch(errorHandler);
+    }
+
+    function insertBibliography() {
+
+        if ($('#citation-bibliography-button').text() == 'Creditline erstellen') {
+            insertCreditline();
+        }
+        else {
+
+            Word.run(function (context) {
+                if (bibliographyAdded) {
+                    var range = context.document.getSelection();
+                    var bibControls = context.document.contentControls.getByTag("bibliography");
+                    context.load(bibControls);
+
+                    range.insertText(getCitationNumber(), 'after');
+
+                    return context.sync()
+                        .then(function () {
+
+
+                            var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
+                            citation.spaceAfter = 20;
+                            //citation.insertText('\n', 'end');
+                            citation.styleBuiltIn = Word.Style.bibliography;
+                            currentCitationNumber++;
+
+
+                            return context.sync();
+
+                        });
+                }
+                else {
+                    var range = context.document.getSelection();
+                    range.insertText(getCitationNumber());
+                    if (!bibliographyAdded) {
+
+                        var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
+                        heading.styleBuiltIn = Word.Style.heading2;
+                        bibliographyAdded = true;
+                    }
+
+                    //var picture = context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "before");
+                    var bibliography = range.insertContentControl('after');
+                    bibliography.insertBreak(Word.BreakType.page, "before");
+
+
+                    bibliography.tag = 'bibliography';
+                    bibliography.styleBuiltIn = Word.Style.bibliography;
+                    var citation = bibliography.insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
+                    citation.spaceAfter = 20;
+                    //citation.insertText('\n', 'end');
+                    citation.styleBuiltIn = Word.Style.bibliography;
+                    currentCitationNumber++;
+                    $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
+
+
+
+                    return context.sync();
+                }
+
+
+            })
+                .catch(errorHandler);
+        }
     }
 
     function insertCitation() {
@@ -286,7 +311,6 @@
 
     function getClipSource() {
         var url = 'https://localhost:5000/source.py';
-        console.log("Getting Source");
         $.ajaxSetup({
             cache: false
         });
@@ -319,34 +343,72 @@
                     type: 'GET',
                     url: 'https://localhost:5000/citations.py',
                     success: function (response) {
-                        var json = JSON.parse(response);
-                        var citation = json.APA;
-                        console.log(citation);
 
+                        console.log(content);
+                        if (content == 'image with metadata') {
+                            if (clips.slice(-1)[0]['source'] == source) {
+                                console.log("was same image");
+                            }
+                            else {
+                                var json = JSON.parse(response);
+                                var name = json.citations.name;
+                                var description = json.citations.description;
+                                var author = json.citations.author;
+                                var copyright = json.citations.copyright;
 
-                        dict['citations'] = citation;
+                                var meta_data_string = description + ' ' + author + '. ' + copyright + '.';
 
+                                dict['citations'] = meta_data_string;
 
+                                $('#txtCitation').text(meta_data_string);
+                                $('#txtContent').text(content);
+                                $('#txtSource').text(source);
 
-                        if (clips.length == 0) {
-                            console.log("length is 0");
-                            $('#txtCitation').text(citation);
-                            $('#txtContent').text(content);
-                            $('#txtSource').text(source);
-                            clips.push(dict);
+                                $('#citation-bibliography-button').text('Creditline erstellen');
 
-                            clipIndex = clips.length - 1;
-                            console.log(clipIndex);
-                        }
-                        else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content) {
-                            console.log(clips.slice(-1)[0]['content']);
+                                clips.push(dict);
+                                clipIndex = clips.length - 1;
+                            }
+                            
+                       
                         }
                         else {
-                            $('#txtCitation').text(citation);
-                            $('#txtContent').text(content);
-                            $('#txtSource').text(source);
-                            clips.push(dict);
-                            clipIndex = clips.length - 1;
+                            if (bibliographyAdded) {
+                                $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
+                            }
+                            else {
+                                $('#citation-bibliography-button').text('Literaturverzeichnis erstellen');
+                            }
+
+                            var json = JSON.parse(response);
+                            var citation = json.APA;
+                            console.log(citation);
+
+
+                            dict['citations'] = citation;
+
+
+
+                            if (clips.length == 0) {
+                                console.log("length is 0");
+                                $('#txtCitation').text(citation);
+                                $('#txtContent').text(content);
+                                $('#txtSource').text(source);
+                                clips.push(dict);
+
+                                clipIndex = clips.length - 1;
+                                console.log(clipIndex);
+                            }
+                            else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content || clips.slice(-1)[0]['content'] == content) {
+                                console.log(clips.slice(-1)[0]['content']);
+                            }
+                            else {
+                                $('#txtCitation').text(citation);
+                                $('#txtContent').text(content);
+                                $('#txtSource').text(source);
+                                clips.push(dict);
+                                clipIndex = clips.length - 1;
+                            }
                         }
                         citation_interval = setTimeout(getClipSource, 5000);
                     },
