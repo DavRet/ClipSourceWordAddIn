@@ -100,6 +100,71 @@
             .catch(errorHandler);
     }
 
+    function insertBibliographyAfterCitation(forCitation) {
+
+        if ($('#citation-bibliography-button').text() == 'Creditline erstellen') {
+            insertCreditline();
+        }
+        else {
+
+            Word.run(function (context) {
+                if (bibliographyAdded) {
+                    var range = context.document.getSelection();
+                    var bibControls = context.document.contentControls.getByTag("bibliography");
+                    context.load(bibControls);
+
+                    forCitation.insertText(getCitationNumber(), 'after');
+
+                    return context.sync()
+                        .then(function () {
+
+
+                            var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
+                            citation.spaceAfter = 20;
+                            //citation.insertText('\n', 'end');
+                            citation.styleBuiltIn = Word.Style.bibliography;
+                            currentCitationNumber++;
+
+
+                            return context.sync();
+
+                        });
+                }
+                else {
+                    var range = context.document.body.paragraphs.getLast();
+                    var number = forCitation.insertText(getCitationNumber(), 'after');
+                 
+
+                    number.insertBreak(Word.BreakType.page, "after");
+                    var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
+                    bibliographyAdded = true;
+
+                    var bibliography = heading.insertContentControl('end');
+                    //range.insertBreak(Word.BreakType.page, "after");
+
+                    bibliography.tag = 'bibliography';
+                    bibliography.styleBuiltIn = Word.Style.bibliography;
+                    var citation = bibliography.insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
+                    citation.spaceAfter = 20;
+                    //citation.insertText('\n', 'end');
+                    citation.styleBuiltIn = Word.Style.bibliography;
+                    currentCitationNumber++;
+                    $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
+
+                    heading.styleBuiltIn = Word.Style.heading2;
+
+
+
+
+                    return context.sync();
+                }
+
+
+            })
+                .catch(errorHandler);
+        }
+    }
+
     function insertBibliography() {
 
         if ($('#citation-bibliography-button').text() == 'Creditline erstellen') {
@@ -188,7 +253,14 @@
             var citation = range.insertText(
                 '"' + clips[clipIndex]['content'] + '"',
                 Word.InsertLocation.replace);
-            citation.styleBuiltIn = Word.Style.quote;             
+            citation.styleBuiltIn = Word.Style.quote;
+
+            citation.tag = 'citation';
+
+            //var citationControls = context.document.contentControls.getByTag("citation");
+
+            //citation.insertText('[1]', 'after');
+            insertBibliographyAfterCitation(citation);
 
             return context.sync();
         })
@@ -399,7 +471,7 @@
                                 clipIndex = clips.length - 1;
                                 console.log(clipIndex);
                             }
-                            else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content || clips.slice(-1)[0]['content'] == content) {
+                            else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content || (clips.slice(-1)[0]['content'] == content) && clips.slice(-1)[0]['source'] == source) {
                                 console.log(clips.slice(-1)[0]['content']);
                             }
                             else {
