@@ -14,6 +14,11 @@
 
     var currentFootNoteNumber = 1;
 
+    var currentImageNumber = 1;
+
+    var intervalTime = 1000;
+
+    var base64image;
 
     // Die Initialisierungsfunktion muss bei jedem Laden einer neuen Seite ausgeführt werden.
     Office.initialize = function (reason) {
@@ -48,7 +53,11 @@
             $('#citation-bibliography-button').on('click', insertBibliography);
 
 
+            $('#image-container').hide();
 
+            $('#insert-image-button').on('click', insertImage);
+
+            
 
 
 
@@ -65,6 +74,52 @@
         });
     };
 
+    function setBase64Image(url) {
+        toDataURL(url, function (dataUrl) {
+            console.log('RESULT:', dataUrl);
+            var base64 = dataUrl.split(',')[1];
+            base64image = base64;
+        })
+    }
+
+    function insertImage() {
+    
+        Word.run(function (context) {
+
+            var image = context.document.body.paragraphs.getLast().insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
+
+            var captionText = ''
+            if (clips[clipIndex]['content'] == 'image') {
+                captionText = "Figure " + getImageCaptionNumber() + ": Quelle: " + clips[clipIndex]['source'];
+            }
+            else if (clips[clipIndex]['content'] == 'image with metadata') {
+                captionText = "Figure " + getImageCaptionNumber() + ': ' + clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + clips[clipIndex]['source'];
+
+            }
+            var caption = image.insertText(captionText, 'after');
+            caption.styleBuiltIn = Word.Style.caption;
+
+            currentImageNumber++;
+            return context.sync();
+        })
+            .catch(errorHandler);
+    }
+
+    function toDataURL(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                callback(reader.result);
+            }
+            reader.readAsDataURL(xhr.response);
+        };
+        url = 'https:' + url.split(':')[1];
+        xhr.open('GET', url);
+        xhr.responseType = 'blob';
+        xhr.send();
+    }
+
     function getSuperScript() {
         switch (currentFootNoteNumber) {
             case 1: return '\u00B9';
@@ -80,6 +135,10 @@
         }
     };
 
+
+    function getImageCaptionNumber() {
+        return currentImageNumber;
+    }
     function getCitationNumber() {
         return ' [' + currentCitationNumber + ']';
     }
@@ -152,9 +211,6 @@
                     $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
 
                     heading.styleBuiltIn = Word.Style.heading2;
-
-
-
 
                     return context.sync();
                 }
@@ -335,9 +391,23 @@
                 console.log(content);
                 console.log(citation);
 
-                $('#txtCitation').text(citation);
-                $('#txtContent').text(content);
-                $('#txtSource').text(source);
+                if (content == 'image' || content == 'image with metadata') {
+             
+                    $('#content-container').hide();
+                    $('#image-container').show();
+                    $("#preview-image").attr("src", source);
+                    $('#txtCitation').text(citation);
+                    $('#txtContent').text(content);
+                    $('#txtSource').text(source);
+                    setBase64Image(source);
+                }
+                else {
+                    $('#content-container').show();
+                    $('#image-container').hide();
+                    $('#txtCitation').text(citation);
+                    $('#txtContent').text(content);
+                    $('#txtSource').text(source);
+                }
 
             }
 
@@ -360,9 +430,23 @@
                 console.log(content);
                 console.log(citation);
 
-                $('#txtCitation').text(citation);
-                $('#txtContent').text(content);
-                $('#txtSource').text(source);
+                if (content == 'image' || content == 'image with metadata') {
+                
+                    $('#content-container').hide();
+                    $('#image-container').show();
+                    $("#preview-image").attr("src", source);
+                    $('#txtCitation').text(citation);
+                    $('#txtContent').text(content);
+                    $('#txtSource').text(source);
+                    setBase64Image(source);
+                }
+                else {
+                    $('#content-container').show();
+                    $('#image-container').hide();
+                    $('#txtCitation').text(citation);
+                    $('#txtContent').text(content);
+                    $('#txtSource').text(source);
+                }
 
             }
 
@@ -403,21 +487,56 @@
                 dict['source'] = source;
                 dict['content'] = content;
 
-                //console.log(source);       
-
-                //console.log(response[1]);
-
-
-
-                //interval = setTimeout(getClipSource, 5000);
 
                 $.ajax({
                     type: 'GET',
                     url: 'https://localhost:5000/citations.py',
                     success: function (response) {
+                
 
                         console.log(content);
-                        if (content == 'image with metadata') {
+                        if (content == 'image') {
+                            var json = JSON.parse(response);
+
+                            if (clips.length == 0) {
+                                console.log("length is 0");
+                                $('#content-container').hide();
+                                $('#image-container').show();
+                                $("#preview-image").attr("src", source);
+                                $('#txtCitation').text(json.APA);
+                                $('#txtContent').text(content);
+                                $('#txtSource').text(source);
+                                setBase64Image(source);
+
+                                dict['citations'] = citation;
+                                clips.push(dict);
+
+                                clipIndex = clips.length - 1;
+                            }
+                            if (clips.slice(-1)[0]['source'] == source) {
+                                console.log("was same image");
+                            }
+                            else {
+
+
+                                $('#content-container').hide();
+                                $('#image-container').show();
+                                $("#preview-image").attr("src", source);
+                                $('#txtCitation').text(json.APA);
+                                $('#txtContent').text(content);
+                                $('#txtSource').text(source);
+                                setBase64Image(source);
+
+                                dict['citations'] = citation;
+                                clips.push(dict);
+                                clipIndex = clips.length - 1;
+
+                            }
+
+                        }
+
+                        else if (content == 'image with metadata') {
+
                             if (clips.slice(-1)[0]['source'] == source) {
                                 console.log("was same image");
                             }
@@ -436,6 +555,12 @@
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
 
+                                $('#content-container').hide();
+                                $('#image-container').show();
+                                $("#preview-image").attr("src", source);
+                               
+                                setBase64Image(source);
+
                                 $('#citation-bibliography-button').text('Creditline erstellen');
 
                                 clips.push(dict);
@@ -445,12 +570,16 @@
                        
                         }
                         else {
+                            console.log("ITS ELSE");
                             if (bibliographyAdded) {
                                 $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
                             }
                             else {
                                 $('#citation-bibliography-button').text('Literaturverzeichnis erstellen');
                             }
+
+                            $('#content-container').show();
+                            $('#image-container').hide();
 
                             var json = JSON.parse(response);
                             var citation = json.APA;
@@ -482,11 +611,11 @@
                                 clipIndex = clips.length - 1;
                             }
                         }
-                        citation_interval = setTimeout(getClipSource, 5000);
+                        citation_interval = setTimeout(getClipSource, intervalTime);
                     },
                     error: function (response) {
 
-                        citation_interval = setTimeout(getClipSource, 5000);
+                        citation_interval = setTimeout(getClipSource, intervalTime);
                         console.log(console.error(response));
 
                     }
@@ -496,7 +625,7 @@
 
             error: function (response) {
                 console.log(console.error(response));
-                citation_interval = setTimeout(getClipSource, 5000);
+                citation_interval = setTimeout(getClipSource, intervalTime);
 
                 return response;
             }

@@ -40,12 +40,20 @@
 
 
             <br /><br />
-            <div class="ms-TextField ms-TextField--multiline">
-                <label class="ms-Label">Clipboard Inhalt</label>
-                <textarea id="txtContent" class="ms-TextField-field"></textarea>
-            </div>
-            <div class="ms-Button" id="cite-button">Als Zitat einfügen</div>
 
+            <div id="image-container">
+                <label class="ms-Label">Clipboard Image</label>
+                <img id="preview-image" src="http://animals.sandiegozoo.org/sites/default/files/inline-images/tiger_indochinese_animals.jpg" style="width: 100%; height: 100%">
+                <div class="ms-Button" id="insert-image-button">Bild mit Bildunterschrift einfügen</div>
+
+            </div>
+            <div id="content-container">
+                <div class="ms-TextField ms-TextField--multiline">
+                    <label class="ms-Label">Clipboard Inhalt</label>
+                    <textarea id="txtContent" class="ms-TextField-field"></textarea>
+                </div>
+                <div class="ms-Button" id="cite-button">Als Zitat einfügen</div>
+            </div>
 
             <div class="ms-TextField ms-TextField--multiline">
                 <label class="ms-Label">Quellen URL</label>
