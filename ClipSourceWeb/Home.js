@@ -85,8 +85,9 @@
     function insertImage() {
     
         Word.run(function (context) {
+            var range = context.document.getSelection();
 
-            var image = context.document.body.paragraphs.getLast().insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
+            var image = range.insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
 
             var captionText = ''
             if (clips[clipIndex]['content'] == 'image') {
@@ -306,8 +307,10 @@
 
             }*/
 
+            var content = $.trim(clips[clipIndex]['content']);
+
             var citation = range.insertText(
-                '"' + clips[clipIndex]['content'] + '"',
+                '"' + content + '"',
                 Word.InsertLocation.replace);
             citation.styleBuiltIn = Word.Style.quote;
 
@@ -327,7 +330,7 @@
         Word.run(function (context) {
 
             // Create a proxy sectionsCollection object.
-            var mySections = context.document.sections;
+            var mySections = context.document.sections.getFirst();
 
             var range = context.document.getSelection();
 
@@ -343,7 +346,7 @@
                 // Create a proxy object the primary footer of the first section. 
                 // Note that the footer is a body object.
 
-                var myFooter = mySections.items[0].getFooter("primary");
+                var myFooter = mySections.getFooter("primary");
 
                 //myFooter.clear();
 
@@ -570,7 +573,7 @@
                        
                         }
                         else {
-                            console.log("ITS ELSE");
+                          
                             if (bibliographyAdded) {
                                 $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
                             }
@@ -583,6 +586,9 @@
 
                             var json = JSON.parse(response);
                             var citation = json.APA;
+
+                            citation = citation.replace('\n', '');
+
                             console.log(citation);
 
 
