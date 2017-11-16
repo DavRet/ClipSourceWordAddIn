@@ -33,7 +33,7 @@
                 return;
             }
 
-            //loadSampleData();
+            loadSampleData();
 
             console.log("INIT");
 
@@ -74,13 +74,55 @@
         });
     };
 
+    function getBase64Image(img) {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        var dataURL = canvas.toDataURL("image/png");
+        return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+    }
+
     function setBase64Image(url) {
         toDataURL(url, function (dataUrl) {
-            console.log('RESULT:', dataUrl);
+            console.log('BASE64 RESULT:', dataUrl);
             var base64 = dataUrl.split(',')[1];
             base64image = base64;
         })
+
+        //console.log(getBase64Image(document.getElementById("preview-image")));
+        /*toDataURL(
+           url,
+            function (dataUrl) {
+                console.log('RESULT:', dataUrl)
+                var base64 = dataUrl.split(',')[1];
+                base64image = base64;
+            }
+        )*/
+
+       
     }
+
+    /*function toDataURL(src, callback, outputFormat) {
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = function () {
+            var canvas = document.createElement('CANVAS');
+            var ctx = canvas.getContext('2d');
+            var dataURL;
+            canvas.height = this.naturalHeight;
+            canvas.width = this.naturalWidth;
+            ctx.drawImage(this, 0, 0);
+            dataURL = canvas.toDataURL(outputFormat);
+            callback(dataURL);
+        };
+        img.src = src;
+        if (img.complete || img.complete === undefined) {
+            img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+            img.src = src;
+        }
+    }*/
 
     function insertImage() {
     
@@ -88,13 +130,22 @@
             var range = context.document.getSelection();
 
             var image = range.insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
+            
+      
+
+            var imageSource = clips[clipIndex]['source'];
+            image.hyperlink = imageSource;
+
+            if (imageSource.indexOf('data:image/') != -1) {
+                imageSource = 'No URL found';
+            }
 
             var captionText = ''
             if (clips[clipIndex]['content'] == 'image') {
-                captionText = "Figure " + getImageCaptionNumber() + ": Quelle: " + clips[clipIndex]['source'];
+                captionText = "Figure " + getImageCaptionNumber() + ": Quelle: " + imageSource;
             }
             else if (clips[clipIndex]['content'] == 'image with metadata') {
-                captionText = "Figure " + getImageCaptionNumber() + ': ' + clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + clips[clipIndex]['source'];
+                captionText = "Figure " + getImageCaptionNumber() + ': ' + clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + imageSource;
 
             }
             var caption = image.insertText(captionText, 'after');
@@ -107,6 +158,8 @@
     }
 
     function toDataURL(url, callback) {
+        url = 'https:' + url.split(':')[1];
+        console.log("TO DATA URL", url);
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
             var reader = new FileReader();
@@ -115,7 +168,6 @@
             }
             reader.readAsDataURL(xhr.response);
         };
-        url = 'https:' + url.split(':')[1];
         xhr.open('GET', url);
         xhr.responseType = 'blob';
         xhr.send();
@@ -149,8 +201,15 @@
 
             var range = context.document.getSelection();
 
+            var imageSource = clips[clipIndex]['source'];
+
+            if (imageSource.indexOf('data:image/') != -1) {
+                imageSource = 'No URL found';
+            }
+              
+
             var creditline = range.insertText(
-                clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + clips[clipIndex]['source'],
+                clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + imageSource,
                 Word.InsertLocation.replace);
 
             creditline.styleBuiltIn = Word.Style.caption;
@@ -402,7 +461,13 @@
                     $('#txtCitation').text(citation);
                     $('#txtContent').text(content);
                     $('#txtSource').text(source);
-                    setBase64Image(source);
+
+                    if (source.indexOf('data:image/') == -1) {
+                        setBase64Image(source);
+                    }
+                    else {
+                        base64image = source.split(',')[1];
+                    }
                 }
                 else {
                     $('#content-container').show();
@@ -441,8 +506,12 @@
                     $('#txtCitation').text(citation);
                     $('#txtContent').text(content);
                     $('#txtSource').text(source);
-                    setBase64Image(source);
-                }
+                    if (source.indexOf('data:image/') == -1) {
+                        setBase64Image(source);
+                    }
+                    else {
+                        base64image = source.split(',')[1];
+                    }                }
                 else {
                     $('#content-container').show();
                     $('#image-container').hide();
@@ -502,14 +571,19 @@
                             var json = JSON.parse(response);
 
                             if (clips.length == 0) {
-                                console.log("length is 0");
                                 $('#content-container').hide();
                                 $('#image-container').show();
                                 $("#preview-image").attr("src", source);
                                 $('#txtCitation').text(json.APA);
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
-                                setBase64Image(source);
+
+                                if (source.indexOf('data:image/') == -1) {
+                                    setBase64Image(source);
+                                }
+                                else {
+                                    base64image = source.split(',')[1];
+                                }
 
                                 dict['citations'] = citation;
                                 clips.push(dict);
@@ -528,7 +602,13 @@
                                 $('#txtCitation').text(json.APA);
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
-                                setBase64Image(source);
+                               
+                                if (source.indexOf('data:image/') == -1) {
+                                    setBase64Image(source);
+                                }
+                                else {
+                                    base64image = source.split(',')[1];
+                                }
 
                                 dict['citations'] = citation;
                                 clips.push(dict);
@@ -540,7 +620,7 @@
 
                         else if (content == 'image with metadata') {
 
-                            if (clips.slice(-1)[0]['source'] == source) {
+                            if (clips.length > 0 && clips.slice(-1)[0]['source'] == source) {
                                 console.log("was same image");
                             }
                             else {
@@ -550,7 +630,7 @@
                                 var author = json.citations.author;
                                 var copyright = json.citations.copyright;
 
-                                var meta_data_string = description + ' ' + author + '. ' + copyright + '.';
+                                var meta_data_string = name + ', ' + description + ', ' + author + ', ';
 
                                 dict['citations'] = meta_data_string;
 
@@ -581,15 +661,17 @@
                                 $('#citation-bibliography-button').text('Literaturverzeichnis erstellen');
                             }
 
-                            $('#content-container').show();
-                            $('#image-container').hide();
+                           
 
                             var json = JSON.parse(response);
                             var citation = json.APA;
 
-                            citation = citation.replace('\n', '');
-
-                            console.log(citation);
+                            try {
+                                citation = citation.replace('\n', '');
+                            }
+                            catch (err) {
+                                console.log('could not replace newlines in citation', err.message);
+                            }
 
 
                             dict['citations'] = citation;
@@ -604,7 +686,6 @@
                                 clips.push(dict);
 
                                 clipIndex = clips.length - 1;
-                                console.log(clipIndex);
                             }
                             else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content || (clips.slice(-1)[0]['content'] == content) && clips.slice(-1)[0]['source'] == source) {
                                 console.log(clips.slice(-1)[0]['content']);
@@ -616,6 +697,14 @@
                                 clips.push(dict);
                                 clipIndex = clips.length - 1;
                             }
+
+                            if (clips[clipIndex]['content'] != 'image' || clips[clipIndex]['content'] != 'image with metadata') {
+                                $('#content-container').show();
+                                $('#image-container').hide();
+                            }
+                          
+                           
+
                         }
                         citation_interval = setTimeout(getClipSource, intervalTime);
                     },
@@ -818,10 +907,31 @@
             body.clear();
             // Reiht einen Befehl zum Einfügen von Text am Ende des Word-Dokumenttexts in die Warteschlange ein.
 
-            body.insertText(
-                "This is a sample text inserted in the document",
+            var tiger = body.insertParagraph(
+                "Tiger",
                 Word.InsertLocation.end);
-            body.insertContentControl();
+            tiger.styleBuiltIn = Word.Style.heading2;
+
+            var elefant = body.insertParagraph(
+                "Elefant",
+                Word.InsertLocation.end);
+            elefant.styleBuiltIn = Word.Style.heading2;
+
+            var affe = body.insertParagraph(
+                "Affe",
+                Word.InsertLocation.end);
+            affe.styleBuiltIn = Word.Style.heading2;
+
+            var hund = body.insertParagraph(
+                "Hund",
+                Word.InsertLocation.end);
+            hund.styleBuiltIn = Word.Style.heading2;
+
+            var pdf = body.insertParagraph(
+                "PDFs",
+                Word.InsertLocation.end);
+            pdf.styleBuiltIn = Word.Style.heading2;
+
 
             // Synchronisiert den Dokumentzustand durch Ausführen von in die Warteschlange eingereihten Befehlen und gibt eine Zusage zum Anzeigen des Abschlusses der Aufgabe zurück.
             return context.sync();
