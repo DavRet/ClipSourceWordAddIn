@@ -1,23 +1,27 @@
 ﻿
 (function () {
-    "use strict";
+
 
     var messageBanner;
 
+    // Array of clipboard contents
     var clips = [];
 
+    // Index of current clipboard content (gets updated continuously)
     var clipIndex = 0;
 
+    // Variable for checking if bibliography was already added
     var bibliographyAdded = false;
 
+    // Citation iteration number
     var currentCitationNumber = 1;
-
+    // Footnote iteration number
     var currentFootNoteNumber = 1;
-
+    // Image iteration number
     var currentImageNumber = 1;
-
+    // Interval time for checking if new sources are available
     var intervalTime = 1000;
-
+    // Current image as Base64
     var base64image;
 
     // Die Initialisierungsfunktion muss bei jedem Laden einer neuen Seite ausgeführt werden.
@@ -33,39 +37,25 @@
                 return;
             }
 
-            loadSampleData();
+            // Loads sample data for user study (not used anymore)
+            //loadSampleData();
 
-            console.log("INIT");
-
-
-
-            // Fügt einen Klickereignishandler für die Hervorhebungsschaltfläche hinzu.
+            // Checks of new clipboard sources in given interval
             getClipSource();
-            //getClipCitations();
-
+        
+            // Setup click listeners
             $('#back-button').on('click', showPreviousClip);
             $('#forward-button').on('click', showNextClip);
-
-
             $('#source-footnote-button').on('click', insertFoot);
             $('#cite-button').on('click', insertCitation);
-            
             $('#citation-bibliography-button').on('click', insertBibliography);
-
-
             $('#image-container').hide();
-
             $('#insert-image-button').on('click', insertImage);
-
-            
-
 
 
             Word.run(function (context) {
                 // Erstellt ein Proxyobjekt für den Dokumenttext.
                 var body = context.document.body;
-
-
                 // Synchronisiert den Dokumentzustand durch Ausführen von in die Warteschlange eingereihten Befehlen und gibt eine Zusage zum Anzeigen des Abschlusses der Aufgabe zurück.
                 return context.sync();
             })
@@ -74,6 +64,9 @@
         });
     };
 
+    /*
+    Gets images as Base64 image
+    */
     function getBase64Image(img) {
         var canvas = document.createElement("canvas");
         canvas.width = img.width;
@@ -84,79 +77,20 @@
         return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
     }
 
+    /*
+    Sets the current Base64 image
+    */
     function setBase64Image(url) {
         toDataURL(url, function (dataUrl) {
             console.log('BASE64 RESULT:', dataUrl);
             var base64 = dataUrl.split(',')[1];
             base64image = base64;
-        })
-
-        //console.log(getBase64Image(document.getElementById("preview-image")));
-        /*toDataURL(
-           url,
-            function (dataUrl) {
-                console.log('RESULT:', dataUrl)
-                var base64 = dataUrl.split(',')[1];
-                base64image = base64;
-            }
-        )*/
-
-       
+        })    
     }
 
-    /*function toDataURL(src, callback, outputFormat) {
-        var img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.onload = function () {
-            var canvas = document.createElement('CANVAS');
-            var ctx = canvas.getContext('2d');
-            var dataURL;
-            canvas.height = this.naturalHeight;
-            canvas.width = this.naturalWidth;
-            ctx.drawImage(this, 0, 0);
-            dataURL = canvas.toDataURL(outputFormat);
-            callback(dataURL);
-        };
-        img.src = src;
-        if (img.complete || img.complete === undefined) {
-            img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-            img.src = src;
-        }
-    }*/
-
-    function insertImage() {
-    
-        Word.run(function (context) {
-            var range = context.document.getSelection();
-
-            var image = range.insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
-            
-      
-
-            var imageSource = clips[clipIndex]['source'];
-            image.hyperlink = imageSource;
-
-            if (imageSource.indexOf('data:image/') != -1) {
-                imageSource = 'No URL found';
-            }
-
-            var captionText = ''
-            if (clips[clipIndex]['content'] == 'image') {
-                captionText = "Figure " + getImageCaptionNumber() + ": Quelle: " + imageSource;
-            }
-            else if (clips[clipIndex]['content'] == 'image with metadata') {
-                captionText = "Figure " + getImageCaptionNumber() + ': ' + clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + imageSource;
-
-            }
-            var caption = image.insertText(captionText, 'after');
-            caption.styleBuiltIn = Word.Style.caption;
-
-            currentImageNumber++;
-            return context.sync();
-        })
-            .catch(errorHandler);
-    }
-
+    /*
+    URL to data for Base64 image
+    */
     function toDataURL(url, callback) {
         url = 'https:' + url.split(':')[1];
         console.log("TO DATA URL", url);
@@ -173,6 +107,49 @@
         xhr.send();
     }
 
+    /*
+    Inserts images in the document with caption
+    */
+    function insertImage() {
+    
+        Word.run(function (context) {
+            // Gets current cursor position
+            var range = context.document.getSelection();
+            // Inserts Base64 image 
+            var image = range.insertParagraph("", "after").insertInlinePictureFromBase64(base64image, "start");
+
+            // Sets image hyperlink to source URL
+            var imageSource = clips[clipIndex]['source'];
+            image.hyperlink = imageSource;
+
+            if (imageSource.indexOf('data:image/') != -1) {
+                imageSource = 'No URL found';
+            }
+            // Builds the caption text 
+            var captionText = ''
+            // Caption text for normal images
+            if (clips[clipIndex]['content'] == 'image') {
+                captionText = "Figure " + getImageCaptionNumber() + ": Quelle: " + imageSource;
+            }
+            // Caption text for images with metadata
+            else if (clips[clipIndex]['content'] == 'image with metadata') {
+                captionText = "Figure " + getImageCaptionNumber() + ': ' + clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + imageSource;
+            }
+            // Insert caption under the image
+            var caption = image.insertText(captionText, 'after');
+            // Use built in "caption" style for caption
+            caption.styleBuiltIn = Word.Style.caption;
+            // Increase the current image number
+            currentImageNumber++;
+            return context.sync();
+        })
+            .catch(errorHandler);
+    }
+
+    
+    /*
+    Get superscript numbers up to 10 for footnotes
+    */
     function getSuperScript() {
         switch (currentFootNoteNumber) {
             case 1: return '\u00B9';
@@ -188,26 +165,31 @@
         }
     };
 
-
+    /*
+    Return current image number for captions
+    */
     function getImageCaptionNumber() {
         return currentImageNumber;
     }
+    /*
+    Return current citation number for placeholder
+    */
     function getCitationNumber() {
         return ' [' + currentCitationNumber + ']';
     }
 
+    /*
+    Inserts image creditline without image
+    */
     function insertCreditline() {
         Word.run(function (context) {
-
             var range = context.document.getSelection();
-
             var imageSource = clips[clipIndex]['source'];
 
             if (imageSource.indexOf('data:image/') != -1) {
                 imageSource = 'No URL found';
             }
               
-
             var creditline = range.insertText(
                 clips[clipIndex]['citations'] + ' ' + 'Quelle: ' + imageSource,
                 Word.InsertLocation.replace);
@@ -219,14 +201,19 @@
             .catch(errorHandler);
     }
 
+    /*
+    Insert bibliography after inserting citation
+    */
     function insertBibliographyAfterCitation(forCitation) {
 
+        // If current clipboard content is image with metadata, insert creditline instead of bibliography
         if ($('#citation-bibliography-button').text() == 'Creditline erstellen') {
             insertCreditline();
         }
         else {
 
             Word.run(function (context) {
+                // If bibliographgy already exists, get it by it's tag and insert citation source in it
                 if (bibliographyAdded) {
                     var range = context.document.getSelection();
                     var bibControls = context.document.contentControls.getByTag("bibliography");
@@ -236,20 +223,19 @@
 
                     return context.sync()
                         .then(function () {
-
-
+                            // Add citation to bibliography and define it's style
                             var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
                             citation.spaceAfter = 20;
                             //citation.insertText('\n', 'end');
                             citation.styleBuiltIn = Word.Style.bibliography;
-                            currentCitationNumber++;
-
-
+                            currentCitationNumber++;                 
                             return context.sync();
-
                         });
                 }
                 else {
+                    // If bibliography was not already added, insert it and put citation source in it
+                    
+                    // The range differs from the other insertBibliography function
                     var range = context.document.body.paragraphs.getLast();
                     var number = forCitation.insertText(getCitationNumber(), 'after');
                  
@@ -261,6 +247,8 @@
                     var bibliography = heading.insertContentControl('end');
                     //range.insertBreak(Word.BreakType.page, "after");
 
+                    // Give tag to bibliography, so we can access it later
+
                     bibliography.tag = 'bibliography';
                     bibliography.styleBuiltIn = Word.Style.bibliography;
                     var citation = bibliography.insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
@@ -268,6 +256,8 @@
                     //citation.insertText('\n', 'end');
                     citation.styleBuiltIn = Word.Style.bibliography;
                     currentCitationNumber++;
+
+                    // Change button label after bibliography is added
                     $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
 
                     heading.styleBuiltIn = Word.Style.heading2;
@@ -281,14 +271,19 @@
         }
     }
 
+    /*
+    Insert bibliography with current clipboard content's source
+    */
     function insertBibliography() {
 
+        // If current clipboard content is image with metadata, insert creditline instead of bibliography
         if ($('#citation-bibliography-button').text() == 'Creditline erstellen') {
             insertCreditline();
         }
         else {
 
             Word.run(function (context) {
+                // If bibliographgy already exists, get it by it's tag and insert citation source in it
                 if (bibliographyAdded) {
                     var range = context.document.getSelection();
                     var bibControls = context.document.contentControls.getByTag("bibliography");
@@ -299,23 +294,20 @@
                     return context.sync()
                         .then(function () {
 
-
+                            // Add citation to bibliography and define it's style
                             var citation = bibControls.items[0].insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
                             citation.spaceAfter = 20;
-                            //citation.insertText('\n', 'end');
                             citation.styleBuiltIn = Word.Style.bibliography;
                             currentCitationNumber++;
-
-
                             return context.sync();
 
                         });
                 }
                 else {
+                    // If bibliography was not already added, insert it and put citation source in it
                     var range = context.document.getSelection();
                     range.insertText(getCitationNumber());
                     if (!bibliographyAdded) {
-
                         var heading = range.insertText('Literaturverzeichnis', Word.InsertLocation.end);
                         heading.styleBuiltIn = Word.Style.heading2;
                         bibliographyAdded = true;
@@ -325,7 +317,7 @@
                     var bibliography = range.insertContentControl('after');
                     bibliography.insertBreak(Word.BreakType.page, "before");
 
-
+                    // Give tag to bibliography, so we can access it later
                     bibliography.tag = 'bibliography';
                     bibliography.styleBuiltIn = Word.Style.bibliography;
                     var citation = bibliography.insertParagraph('[' + currentCitationNumber + ']' + ' ' + clips[clipIndex]['citations'], 'end');
@@ -333,9 +325,8 @@
                     //citation.insertText('\n', 'end');
                     citation.styleBuiltIn = Word.Style.bibliography;
                     currentCitationNumber++;
+                    // Change button label after bibliography is added
                     $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
-
-
 
                     return context.sync();
                 }
@@ -346,38 +337,25 @@
         }
     }
 
+    /*
+    Inserts ciatation at selection and adds source to bibliography
+    */
     function insertCitation() {
         Word.run(function (context) {
-
+            // Get current selection
             var range = context.document.getSelection();
-
-            /*if (clips[clipIndex]['citations'] != 'no citations in clipboard') {
-                var citation = range.insertText('"' + clips[clipIndex]['content']  + '"',
-                    Word.InsertLocation.replace);
-                citation.styleBuiltIn = Word.Style.quote;
-                insertBibliography();
-            }
-            else {
-                var citation = range.insertText(
-                    '"' + clips[clipIndex]['content'] + '"' + getSuperScript(),
-                    Word.InsertLocation.replace);
-                citation.styleBuiltIn = Word.Style.quote;
-                insertFoot();
-
-            }*/
-
+            // Get clipboard content
             var content = $.trim(clips[clipIndex]['content']);
-
+            // Insert content as citation
             var citation = range.insertText(
                 '"' + content + '"',
                 Word.InsertLocation.replace);
+            // Give "Quote" style to inserted citation
             citation.styleBuiltIn = Word.Style.quote;
 
             citation.tag = 'citation';
 
-            //var citationControls = context.document.contentControls.getByTag("citation");
-
-            //citation.insertText('[1]', 'after');
+            // Insert bibliography with citation or add citation to bibliography, if it already exists
             insertBibliographyAfterCitation(citation);
 
             return context.sync();
@@ -385,6 +363,9 @@
             .catch(errorHandler);
     }
 
+    /*
+    Inserts footnote, code was already in example code, then altered
+    */
     function insertFoot() {
         Word.run(function (context) {
 
@@ -407,8 +388,6 @@
 
                 var myFooter = mySections.getFooter("primary");
 
-                //myFooter.clear();
-
                 // Queue a command to insert text at the end of the footer.
                 myFooter.insertParagraph(getSuperScript(1) + ' ' + 'Quelle: ' + clips[clipIndex]['source'], Word.InsertLocation.end);
                 myFooter.spaceAfter = 10;
@@ -420,7 +399,6 @@
                 myFooter.styleBuiltIn = Word.Style.footnoteText;
 
                 currentFootNoteNumber++;
-
 
                 // Synchronize the document state by executing the queued commands, 
                 // and return a promise to indicate task completion.
@@ -437,6 +415,9 @@
             });
     }
 
+    /*
+    Shows next clipboard content, after clicking on "Vorwärts" button
+    */
     function showNextClip() {
         if (clips.length > 0) {
 
@@ -448,10 +429,6 @@
                 var source = clips[clipIndex]['source'];
                 var content = clips[clipIndex]['content'];
                 var citation = clips[clipIndex]['citations'];
-
-                console.log(source);
-                console.log(content);
-                console.log(citation);
 
                 if (content == 'image' || content == 'image with metadata') {
              
@@ -476,12 +453,13 @@
                     $('#txtContent').text(content);
                     $('#txtSource').text(source);
                 }
-
             }
-
         }
     }
 
+    /*
+    Shows previous clipboard content, after clicking on "Zurück" button
+    */
     function showPreviousClip() {
         if (clips.length > 0) {
 
@@ -493,10 +471,6 @@
                 var source = clips[clipIndex]['source'];
                 var content = clips[clipIndex]['content'];
                 var citation = clips[clipIndex]['citations'];
-
-                console.log(source);
-                console.log(content);
-                console.log(citation);
 
                 if (content == 'image' || content == 'image with metadata') {
                 
@@ -524,29 +498,24 @@
 
         }
     }
-
-    function handlePaste() {
-        console.log("PASTE");
-    }
-
     var interval;
-
-    function responseToString(response) {
-        console.log(response[1]);
-
-
-    }
-
+    /*
+    Gets the clipboard's SOURCE and CITATION formats with the help of the python flask server
+    */
     function getClipSource() {
-        var url = 'https://localhost:5000/source.py';
+        var sourceUrl = 'https://localhost:5000/source.py';
+        var citationsUrl = 'https://localhost:5000/citations.py';
+
+        // We don't want any old item in the cache
         $.ajaxSetup({
             cache: false
         });
+        // AJAX query to server, first we want to get the sources
         $.ajax({
             type: 'GET',
-
-            url: url,
+            url: sourceUrl,
             success: function (response) {
+                // Parse the JSON response
                 var json = JSON.parse(response);
                 var dictObject = {}
 
@@ -554,23 +523,25 @@
 
                 var content = json.content;
 
+                // Dictionary for saving sources and content
                 var dict = {}
-
                 dict['source'] = source;
                 dict['content'] = content;
 
-
+                // Second AJAX query, this time we want to get the citations
                 $.ajax({
                     type: 'GET',
-                    url: 'https://localhost:5000/citations.py',
+                    url: citationsUrl,
                     success: function (response) {
-                
 
                         console.log(content);
+
+                        // Check if content is an image
                         if (content == 'image') {
                             var json = JSON.parse(response);
 
                             if (clips.length == 0) {
+                                // Show/Hide UI elements if it's an image and set the text of these elements
                                 $('#content-container').hide();
                                 $('#image-container').show();
                                 $("#preview-image").attr("src", source);
@@ -585,17 +556,18 @@
                                     base64image = source.split(',')[1];
                                 }
 
+                                // Push the citations to the dictionary and iterate clip index
                                 dict['citations'] = citation;
                                 clips.push(dict);
 
                                 clipIndex = clips.length - 1;
                             }
+                            // Check if it was the same content as before. If so, do nothing.
                             if (clips.slice(-1)[0]['source'] == source) {
                                 console.log("was same image");
                             }
                             else {
-
-
+                                // Show/Hide UI elements if it's an image and set the text of these elements
                                 $('#content-container').hide();
                                 $('#image-container').show();
                                 $("#preview-image").attr("src", source);
@@ -610,6 +582,7 @@
                                     base64image = source.split(',')[1];
                                 }
 
+                                // Push the citations to the dictionary and iterate clip index
                                 dict['citations'] = citation;
                                 clips.push(dict);
                                 clipIndex = clips.length - 1;
@@ -617,35 +590,43 @@
                             }
 
                         }
-
+                        // Check if content was image with metadata
                         else if (content == 'image with metadata') {
 
+                            // Check if it was the same content as before. If so, do nothing.
                             if (clips.length > 0 && clips.slice(-1)[0]['source'] == source) {
                                 console.log("was same image");
                             }
                             else {
+                                // Get the metadata out of the JSON object
                                 var json = JSON.parse(response);
                                 var name = json.citations.name;
                                 var description = json.citations.description;
                                 var author = json.citations.author;
                                 var copyright = json.citations.copyright;
 
+                                // Build metadata string
                                 var meta_data_string = name + ', ' + description + ', ' + author + ', ';
 
+                                // Set metadata string in dictionary
                                 dict['citations'] = meta_data_string;
 
+                                // Set the text of the UI elements
                                 $('#txtCitation').text(meta_data_string);
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
 
+                                // Hide/show UI elements
                                 $('#content-container').hide();
                                 $('#image-container').show();
                                 $("#preview-image").attr("src", source);
-                               
+
+                                // Set the Base64 image, which is needed for inserting images into the Word document
                                 setBase64Image(source);
 
                                 $('#citation-bibliography-button').text('Creditline erstellen');
 
+                                // Push dictionary to clip array
                                 clips.push(dict);
                                 clipIndex = clips.length - 1;
                             }
@@ -653,7 +634,9 @@
                        
                         }
                         else {
-                          
+                            // In this case, there are no images, just text
+
+                            // Change the text of the bibliography button 
                             if (bibliographyAdded) {
                                 $('#citation-bibliography-button').text('Zum Literaturverzeichnis hinzufügen');
                             }
@@ -662,10 +645,13 @@
                             }
 
                            
-
+                            // Parse the JSON object
                             var json = JSON.parse(response);
+
+                            // Get the APA citation
                             var citation = json.APA;
 
+                            // Sometimes there are unexpected newlines in the citation, replace them
                             try {
                                 citation = citation.replace('\n', '');
                             }
@@ -673,24 +659,24 @@
                                 console.log('could not replace newlines in citation', err.message);
                             }
 
-
+                            // Add the citation to the dictionary
                             dict['citations'] = citation;
 
 
-
+                            // Push the dictionary to the clips array
                             if (clips.length == 0) {
-                                console.log("length is 0");
                                 $('#txtCitation').text(citation);
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
                                 clips.push(dict);
-
                                 clipIndex = clips.length - 1;
                             }
+                            // If content was same as before, do nothing
                             else if (clips.slice(-1)[0]['source'] == content || clips.slice(-1)[0]['citations'] == content || (clips.slice(-1)[0]['content'] == content) && clips.slice(-1)[0]['source'] == source) {
                                 console.log(clips.slice(-1)[0]['content']);
                             }
                             else {
+                                // Set the text of UI elements and push dictionary in clips array
                                 $('#txtCitation').text(citation);
                                 $('#txtContent').text(content);
                                 $('#txtSource').text(source);
@@ -698,7 +684,14 @@
                                 clipIndex = clips.length - 1;
                             }
 
-                            if (clips[clipIndex]['content'] != 'image' || clips[clipIndex]['content'] != 'image with metadata') {
+                            
+                            // Make sure to show or hide image container
+                            if (clips[clipIndex]['content'] == 'image with metadata' || clips[clipIndex]['content'] == 'image') {
+                                console.log("is image!");
+                                $('#content-container').hide();
+                                $('#image-container').show();
+                            }
+                            else  {
                                 $('#content-container').show();
                                 $('#image-container').hide();
                             }
@@ -706,13 +699,13 @@
                            
 
                         }
+                        // Set timeout of interval length and then call this whole function again to check for new clipboard data
                         citation_interval = setTimeout(getClipSource, intervalTime);
                     },
                     error: function (response) {
-
+                        // If something goes wrong, call the function again and check for new clipboard data anyway
                         citation_interval = setTimeout(getClipSource, intervalTime);
                         console.log(console.error(response));
-
                     }
                 });
 
@@ -720,192 +713,25 @@
 
             error: function (response) {
                 console.log(console.error(response));
+                // If something goes wrong, call the function again and check for new clipboard data anyway
                 citation_interval = setTimeout(getClipSource, intervalTime);
 
                 return response;
             }
         });
-        /*var source = $.get(url, function (responseText) {
-            console.log(responseText);
-        });*/
-
-
+       
     }
 
-    var citation_interval
-    function getClipCitations() {
-        var url = 'https://localhost:5000/citations.py';
-        console.log("Getting Citations");
-        $.ajaxSetup({
-            cache: false
-        });
-        $.ajax({
-            type: 'GET',
-            url: url,
-            success: function (response) {
-                var json = JSON.parse(response);
-                var citation = json.APA;
-                console.log(citation);
-                //console.log(response[1]);
-                $('#txtCitation').text(citation);
-
-                citation_interval = setTimeout(getClipCitations, 5000);
-
-                console.log(response);
-                return response;
-            },
-            error: function (response) {
-
-                citation_interval = setTimeout(getClipCitations, 5000);
-                console.log(console.error(response));
-
-                return response;
-            }
-        });
-        /*var source = $.get(url, function (responseText) {
-            console.log(responseText);
-        });*/
-
-
-    }
-
-    function inserText(text) {
-        Word.run(function (context) {
-            // Erstellt ein Proxyobjekt für den Dokumenttext.
-            var body = context.document.body;
-
-            // Reiht einen Befehl zum Löschen des Inhalts des Texts in die Warteschlange ein.
-            body.clear();
-            // Reiht einen Befehl zum Einfügen von Text am Ende des Word-Dokumenttexts in die Warteschlange ein.
-
-            body.insertText(
-                text,
-                Word.InsertLocation.end);
-            body.insertContentControl();
-
-            // Synchronisiert den Dokumentzustand durch Ausführen von in die Warteschlange eingereihten Befehlen und gibt eine Zusage zum Anzeigen des Abschlusses der Aufgabe zurück.
-            return context.sync();
-        })
-            .catch(errorHandler);
-    }
-
-    function insertTestCitation() {
-        // Run a batch operation against the Word object model.
-        Word.run(function (context) {
-
-            // Create a proxy object for the document.
-            var thisDocument = context.document;
-
-            // Queue a command to load content control properties.
-            context.load(thisDocument, 'contentControls/id, contentControls/text, contentControls/tag');
-
-            // Synchronize the document state by executing the queued commands, 
-            // and return a promise to indicate task completion.
-            return context.sync().then(function () {
-                if (thisDocument.contentControls.items.length !== 0) {
-                    for (var i = 0; i < thisDocument.contentControls.items.length; i++) {
-                        console.log(thisDocument.contentControls.items[i].id);
-                        console.log(thisDocument.contentControls.items[i].text);
-                        console.log(thisDocument.contentControls.items[i].tag);
-                    }
-                } else {
-                    console.log('No content controls in this document.');
-                }
-            });
-        })
-            .catch(function (error) {
-                console.log('Error: ' + JSON.stringify(error));
-                if (error instanceof OfficeExtension.Error) {
-                    console.log('Debug info: ' + JSON.stringify(error.debugInfo));
-                }
-            });
-    }
-
-    // Add data (HTML) to the current document selection
-    function addHtml() {
-        // Run a batch operation against the Word object model.
-        Word.run(function (context) {
-
-            // Create a proxy object for the paragraphs collection.
-            var paragraphs = context.document.body.paragraphs;
-
-            // Queue a commmand to load the style property for the top 2 paragraphs.
-            context.load(paragraphs, { select: 'style', top: 2 });
-
-            // Synchronize the document state by executing the queued commands, 
-            // and return a promise to indicate task completion.
-            return context.sync().then(function () {
-
-                // Queue a a set of commands to get the OOXML of the first paragraph.
-                var ooxml = paragraphs.items[0].getOoxml();
-
-                // Synchronize the document state by executing the queued commands, 
-                // and return a promise to indicate task completion.
-                return context.sync().then(function () {
-                    console.log('Paragraph OOXML: ' + ooxml.value);
-                });
-            });
-        })
-            .catch(function (error) {
-                console.log('Error: ' + JSON.stringify(error));
-                if (error instanceof OfficeExtension.Error) {
-                    console.log('Debug info: ' + JSON.stringify(error.debugInfo));
-                }
-            });
-    }
-
-    function insertFootnote() {
-        // Run a batch operation against the Word object model.
-        console.log("insert footnote");
-        Word.run(function (context) {
-
-            // Create a proxy sectionsCollection object.
-            var mySections = context.document.sections;
-
-
-            // Queue a commmand to load the sections.
-            context.load(mySections, 'body/style');
-
-            // Synchronize the document state by executing the queued commands, 
-            // and return a promise to indicate task completion.
-            return context.sync().then(function () {
-
-                // Create a proxy object the primary footer of the first section. 
-                // Note that the footer is a body object.
-
-                var myFooter = mySections.items[0].getFooter("primary");
-
-                // Queue a command to insert text at the end of the footer.
-                myFooter.insertText(source, Word.InsertLocation.end);
-
-                // Queue a command to wrap the header in a content control.
-                myFooter.insertContentControl();
-
-                // Synchronize the document state by executing the queued commands, 
-                // and return a promise to indicate task completion.
-                return context.sync().then(function () {
-                    console.log("Added a footer to the first section.");
-                });
-            });
-        })
-            .catch(function (error) {
-                console.log('Error: ' + JSON.stringify(error));
-                if (error instanceof OfficeExtension.Error) {
-                    console.log('Debug info: ' + JSON.stringify(error.debugInfo));
-                }
-            });
-    }
-
+   
+    /*
+    Loads sample data. This was used for the user study and is not used anymore. However, it shows some useful functions for inserting headings into the document
+    */
     function loadSampleData() {
         console.log("Loading sample");
-        // Führt einen Batchvorgang für das Word-Objektmodell aus.
         Word.run(function (context) {
-            // Erstellt ein Proxyobjekt für den Dokumenttext.
             var body = context.document.body;
 
-            // Reiht einen Befehl zum Löschen des Inhalts des Texts in die Warteschlange ein.
             body.clear();
-            // Reiht einen Befehl zum Einfügen von Text am Ende des Word-Dokumenttexts in die Warteschlange ein.
 
             var tiger = body.insertParagraph(
                 "Tiger",
@@ -931,63 +757,13 @@
                 "PDFs",
                 Word.InsertLocation.end);
             pdf.styleBuiltIn = Word.Style.heading2;
-
-
-            // Synchronisiert den Dokumentzustand durch Ausführen von in die Warteschlange eingereihten Befehlen und gibt eine Zusage zum Anzeigen des Abschlusses der Aufgabe zurück.
+        
             return context.sync();
         })
             .catch(errorHandler);
     }
 
-    function hightlightLongestWord() {
-        Word.run(function (context) {
-            // Reiht einen Befehl zum Abrufen der aktuellen Auswahl in die Warteschlange ein und
-            // erstellt dann ein Proxybereichsobjekt mit den Ergebnissen.
-            var range = context.document.getSelection();
-
-            // Diese Variable enthält die Suchergebnisse für das längste Wort.
-            var searchResults;
-
-            // Reiht einen Befehl in die Warteschlange ein, um das Bereichsauswahlergebnis zu laden.
-            context.load(range, 'text');
-
-            // Synchronisiert den Zustand des Dokuments durch Ausführen der in die Warteschlange eingereihten Befehle
-            // und gibt eine Zusage zum Angeben des Abschlusses der Aufgabe zurück.
-            return context.sync()
-                .then(function () {
-                    // Ruft das längste Wort aus der Auswahl ab.
-                    var words = range.text.split(/\s+/);
-                    var longestWord = words.reduce(function (word1, word2) { return word1.length > word2.length ? word1 : word2; });
-
-                    // Reiht einen Suchbefehl in die Warteschlange ein.
-                    searchResults = range.search(longestWord, { matchCase: true, matchWholeWord: true });
-
-                    // Reiht einen Befehl zum Laden der Eigenschaft "font" der Ergebnisse in die Warteschlange ein.
-                    context.load(searchResults, 'font');
-                })
-                .then(context.sync)
-                .then(function () {
-                    // Reiht einen Befehl zum Hervorheben der Suchergebnisse in die Warteschlange ein.
-                    searchResults.items[0].font.highlightColor = '#FFFF00'; // Gelb
-                    searchResults.items[0].font.bold = true;
-                })
-                .then(context.sync);
-        })
-            .catch(errorHandler);
-    }
-
-
-    function displaySelectedText() {
-        Office.context.document.getSelectedDataAsync(Office.CoercionType.Text,
-            function (result) {
-                if (result.status === Office.AsyncResultStatus.Succeeded) {
-                    showNotification('Der ausgewählte Text lautet:', '"' + result.value + '"');
-                } else {
-                    showNotification('Fehler:', result.error.message);
-                }
-            });
-    }
-
+    // Was already included in the sample code, used for debugging
     //$$(Helper function for treating errors, $loc_script_taskpane_home_js_comment34$)$$
     function errorHandler(error) {
         // $$(Always be sure to catch any accumulated errors that bubble up from the Word.run execution., $loc_script_taskpane_home_js_comment35$)$$
@@ -998,37 +774,13 @@
         }
     }
 
+    // Was already included in the example code, used for debugging
     // Eine Hilfsfunktion zum Anzeigen von Benachrichtigungen.
     function showNotification(header, content) {
         $("#notification-header").text(header);
         $("#notification-body").text(content);
         messageBanner.showBanner();
         messageBanner.toggleExpansion();
-    }
-
-    function initializeUI() {
-        const textFieldElements = document.querySelectorAll(".ms-TextField");
-        for (let i = 0; i < textFieldElements.length; i++) {
-            new fabric['TextField'](textFieldElements[i]);
-        }
-
-        const dropdownHTMLElements = document.querySelectorAll('.ms-Dropdown');
-        for (let i = 0; i < dropdownHTMLElements.length; ++i) {
-            new fabric['Dropdown'](dropdownHTMLElements[i]);
-        }
-
-        const checkBoxElements = document.querySelectorAll(".ms-CheckBox");
-        acceptCheckBox = new fabric['CheckBox'](checkBoxElements[0]);
-
-        const choiceFieldGroupElements = document.querySelectorAll(".ms-ChoiceFieldGroup");
-        for (let i = 0; i < choiceFieldGroupElements.length; i++) {
-            new fabric['ChoiceFieldGroup'](choiceFieldGroupElements[i]);
-        }
-
-        const toggleElements = document.querySelectorAll(".ms-Toggle");
-        for (let i = 0; i < toggleElements.length; i++) {
-            new fabric['Toggle'](toggleElements[i]);
-        }
     }
 
 })();
