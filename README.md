@@ -1,4 +1,4 @@
-# ClipSourceWordAddIn
+# ClipSource Word Add-In
 Add-in for MS Word which displays the source URL and citations of copied objects in combination with clipsource.py and clipsource_server.py (https://github.com/DavRet/ClipSource).
 
 Features:
